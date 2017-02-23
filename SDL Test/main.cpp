@@ -21,29 +21,29 @@ using namespace std;
 // Data would normally be read from files
 GLuint cubeVertCount = 8;
 GLfloat cubeVerts[] = { -0.5, -0.5f, -0.5f,
-						-0.5, 0.5f, -0.5f,
-						0.5, 0.5f, -0.5f,
-						0.5, -0.5f, -0.5f,
-						-0.5, -0.5f, 0.5f,
-						-0.5, 0.5f, 0.5f,
-						0.5, 0.5f, 0.5f,
-						0.5, -0.5f, 0.5f };
+-0.5, 0.5f, -0.5f,
+0.5, 0.5f, -0.5f,
+0.5, -0.5f, -0.5f,
+-0.5, -0.5f, 0.5f,
+-0.5, 0.5f, 0.5f,
+0.5, 0.5f, 0.5f,
+0.5, -0.5f, 0.5f };
 GLfloat cubeColours[] = { 0.0f, 0.0f, 0.0f,
-						0.0f, 1.0f, 0.0f,
-						1.0f, 1.0f, 0.0f,
-						1.0f, 0.0f, 0.0f,
-						0.0f, 0.0f, 1.0f,
-						0.0f, 1.0f, 1.0f,
-						1.0f, 1.0f, 1.0f,
-						1.0f, 0.0f, 1.0f };
+0.0f, 1.0f, 0.0f,
+1.0f, 1.0f, 0.0f,
+1.0f, 0.0f, 0.0f,
+0.0f, 0.0f, 1.0f,
+0.0f, 1.0f, 1.0f,
+1.0f, 1.0f, 1.0f,
+1.0f, 0.0f, 1.0f };
 
 GLuint cubeIndexCount = 36;
 GLuint cubeIndices[] = { 0,1,2, 0,2,3, // back  
-						1,0,5, 0,4,5, // left					
-						6,3,2, 3,6,7, // right
-						1,5,6, 1,6,2, // top
-						0,3,4, 3,7,4, // bottom
-						6,5,4, 7,6,4 }; // front
+1,0,5, 0,4,5, // left					
+6,3,2, 3,6,7, // right
+1,5,6, 1,6,2, // top
+0,3,4, 3,7,4, // bottom
+6,5,4, 7,6,4 }; // front
 
 GLfloat dx = 0.0f;
 GLfloat dy = 0.0f;
@@ -57,29 +57,29 @@ glm::mat4 MVP;
 // Set up rendering context
 SDL_Window * setupRC(SDL_GLContext &context) {
 	SDL_Window * window;
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) // Initialize video
-        rt3d::exitFatalError("Unable to initialize SDL"); 
-	  
-    // Request an OpenGL 3.0 context.
-    // Not able to use SDL to choose profile (yet), should default to core profile on 3.2 or later
+	if (SDL_Init(SDL_INIT_VIDEO) < 0) // Initialize video
+		rt3d::exitFatalError("Unable to initialize SDL");
+
+	// Request an OpenGL 3.0 context.
+	// Not able to use SDL to choose profile (yet), should default to core profile on 3.2 or later
 	// If you request a context not supported by your drivers, no OpenGL context will be created
-	
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE); 
+
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);  // double buffering on
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4); // Turn on x4 multisampling anti-aliasing (MSAA)
- 
-    // Create 800x600 window
-    window = SDL_CreateWindow("SDL/GLM/OpenGL Demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
+
+													   // Create 800x600 window
+	window = SDL_CreateWindow("SDL/GLM/OpenGL Demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+		800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 	if (!window) // Check window was created OK
-        rt3d::exitFatalError("Unable to create window");
- 
-    context = SDL_GL_CreateContext(window); // Create opengl context and attach to window
-    SDL_GL_SetSwapInterval(1); // set swap buffers to sync with monitor's vertical refresh rate
+		rt3d::exitFatalError("Unable to create window");
+
+	context = SDL_GL_CreateContext(window); // Create opengl context and attach to window
+	SDL_GL_SetSwapInterval(1); // set swap buffers to sync with monitor's vertical refresh rate
 	return window;
 }
 
@@ -103,19 +103,19 @@ void draw(SDL_Window * window) {
 
 	projection = glm::perspective(float(60.0f*DEG_TO_RADIAN), 800.0f / 600.0f, 1.0f, 50.0f);
 	modelview = glm::translate(modelview, glm::vec3(dx, dy, -4));
-	
+
 	glm::mat4 MVP = projection * modelview;
 	rt3d::setUniformMatrix4fv(mvpShaderProgram, "MVP", glm::value_ptr(MVP));
 
 	rt3d::drawIndexedMesh(meshObjects[0], cubeIndexCount, GL_TRIANGLES);
 
-    SDL_GL_SwapWindow(window); // swap buffers
+	SDL_GL_SwapWindow(window); // swap buffers
 }
 
 void update(void) {
 	const Uint8 *keys = SDL_GetKeyboardState(NULL);
-	if (keys[SDL_SCANCODE_W] ) dy += 0.1;
-	if (keys[SDL_SCANCODE_S] ) dy -= 0.1;
+	if (keys[SDL_SCANCODE_W]) dy += 0.1;
+	if (keys[SDL_SCANCODE_S]) dy -= 0.1;
 	if (keys[SDL_SCANCODE_D]) dx += 0.1;
 	if (keys[SDL_SCANCODE_A]) dx -= 0.1;
 
@@ -139,16 +139,16 @@ void update(void) {
 
 // Program entry point - SDL manages the actual WinMain entry point for us
 int main(int argc, char *argv[]) {
-    SDL_Window * hWindow; // window handle
-    SDL_GLContext glContext; // OpenGL context handle
-    hWindow = setupRC(glContext); // Create window and render context 
+	SDL_Window * hWindow; // window handle
+	SDL_GLContext glContext; // OpenGL context handle
+	hWindow = setupRC(glContext); // Create window and render context 
 
-	// Required on Windows *only* init GLEW to access OpenGL beyond 1.1
+								  // Required on Windows *only* init GLEW to access OpenGL beyond 1.1
 	glewExperimental = GL_TRUE;
 	GLenum err = glewInit();
 	if (GLEW_OK != err) { // glewInit failed, something is seriously wrong
 		std::cout << "glewInit failed, aborting." << endl;
-		exit (1);
+		exit(1);
 	}
 	cout << glGetString(GL_VERSION) << endl;
 
@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
 
 	bool running = true; // set running to true
 	SDL_Event sdlEvent;  // variable to detect SDL events
-	while (running)	{	// the event loop
+	while (running) {	// the event loop
 		while (SDL_PollEvent(&sdlEvent)) {
 			if (sdlEvent.type == SDL_QUIT)
 				running = false;
@@ -165,8 +165,8 @@ int main(int argc, char *argv[]) {
 		draw(hWindow); // call the draw function
 	}
 
-    SDL_GL_DeleteContext(glContext);
-    SDL_DestroyWindow(hWindow);
-    SDL_Quit();
-    return 0;
+	SDL_GL_DeleteContext(glContext);
+	SDL_DestroyWindow(hWindow);
+	SDL_Quit();
+	return 0;
 }
