@@ -9,6 +9,7 @@
 #pragma comment(linker, "/subsystem:\"console\" /entry:\"WinMainCRTStartup\"")
 #endif
 
+#include <stack>
 #include "rt3d.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -53,6 +54,23 @@ GLfloat r = 0.0f;
 GLuint meshObjects[2];
 GLuint mvpShaderProgram;
 glm::mat4 MVP;
+std::stack<glm::mat4> mvStack;
+
+rt3d::lightStruct light0 = {
+	{ 0.2f, 0.2f, 0.2f, 1.0f }, // ambient
+	{ 0.7f, 0.7f, 0.7f, 1.0f }, // diffuse
+	{ 0.8f, 0.8f, 0.8f, 1.0f }, // specular
+	{ 0.0f, 0.0f, 1.0f, 1.0f }  // position
+};
+
+rt3d::materialStruct material0 = {
+	{ 0.4f, 0.2f, 0.2f, 1.0f }, // ambient
+	{ 0.8f, 0.5f, 0.5f, 1.0f }, // diffuse
+	{ 1.0f, 0.8f, 0.8f, 1.0f }, // specular
+	2.0f  // shininess
+};
+
+
 
 // Set up rendering context
 SDL_Window * setupRC(SDL_GLContext &context) {
@@ -85,11 +103,14 @@ SDL_Window * setupRC(SDL_GLContext &context) {
 
 void init(void) {
 	// For this simple example we'll be using the most basic of shader programs
-	mvpShaderProgram = rt3d::initShaders("mvp.vert", "minimal.frag");
+	mvpShaderProgram = rt3d::initShaders("phong.vert", "phong.frag");
+
+	rt3d::setLight(mvpShaderProgram, light0);
+	rt3d::setMaterial(mvpShaderProgram, material0);
 
 	//MVP = glm::mat4(1.0); //init to identify matrix
 	// Going to create our mesh objects here
-	meshObjects[0] = rt3d::createMesh(cubeVertCount, cubeVerts, cubeColours, nullptr, nullptr, cubeIndexCount, cubeIndices);
+	meshObjects[0] = rt3d::createMesh(cubeVertCount, cubeVerts, nullptr, cubeVerts, nullptr, cubeIndexCount, cubeIndices);
 	glEnable(GL_DEPTH_TEST); // enable depth testing
 }
 
@@ -98,16 +119,35 @@ void draw(SDL_Window * window) {
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+	// set up projection matrix
 	glm::mat4 projection(1.0);
-	glm::mat4 modelview(1.0);
-
 	projection = glm::perspective(float(60.0f*DEG_TO_RADIAN), 800.0f / 600.0f, 1.0f, 50.0f);
-	modelview = glm::translate(modelview, glm::vec3(dx, dy, -4));
+	rt3d::setUniformMatrix4fv(mvpShaderProgram, "projection", glm::value_ptr(projection));
 
-	glm::mat4 MVP = projection * modelview;
-	rt3d::setUniformMatrix4fv(mvpShaderProgram, "MVP", glm::value_ptr(MVP));
-
+	// render the sun
+	glm::mat4 modelview(1.0);
+	mvStack.push(modelview); // push modelview to stack
+	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(0.0f, 0.0f, -4.0f));
+	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
+	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
 	rt3d::drawIndexedMesh(meshObjects[0], cubeIndexCount, GL_TRIANGLES);
+
+	// planet
+	mvStack.push(mvStack.top());// push modelview to stack
+	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(2.0f, 0.0f, 0.0f));
+	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
+	mvStack.top() = glm::scale(mvStack.top(), glm::vec3(0.3f, 0.3f, 0.3f));
+	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
+	rt3d::drawIndexedMesh(meshObjects[0], cubeIndexCount, GL_TRIANGLES);
+
+	
+	// Now to push another stack, add transformations and draw moon #1
+	// then pop stack. 
+	// Repeat until all moons rendered, then pop stack...
+	// then for each additional planet – push stack, add transforms, draw planet,
+	// draw moons, pop stack
+
 
 	SDL_GL_SwapWindow(window); // swap buffers
 }
@@ -136,6 +176,9 @@ void update(void) {
 	if (keys[SDL_SCANCODE_E]) r -= 0.3;
 
 }
+
+
+
 
 // Program entry point - SDL manages the actual WinMain entry point for us
 int main(int argc, char *argv[]) {
