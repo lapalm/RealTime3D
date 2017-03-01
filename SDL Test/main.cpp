@@ -61,10 +61,15 @@ GLuint cubeIndices[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1
 }; 
 
 GLfloat cubeTexCoords[] = { 
-	0, 0,   1, 1,   1, 0,   0, 0,   0, 1,   1, 1,   0, 0,   1, 1,   1, 0,   0, 0,
-	0, 1,   1, 1,   0, 0,   1, 1,   1, 0,   0, 0,   0, 1,   1, 1,   0, 0,   0, 1,
-	1, 1,   0, 0,   1, 1,   1, 0,   0, 0,   1, 0,   1, 1,   0, 0,   1, 1,   0, 1,
-	0, 0,   1, 0,   1, 1,   0, 0,   1, 1,   0, 1
+	0, 0,   1, 1,   1, 0,   0, 0,  
+	0, 1,   1, 1,   0, 0,   1, 1,   
+	1, 0,   0, 0,   0, 1,   1, 1,  
+	0, 0,   1, 1,   1, 0,   0, 0,   
+	0, 1,   1, 1,   0, 0,   0, 1,
+	1, 1,   0, 0,   1, 1,   1, 0,   
+	0, 0,   1, 0,   1, 1,   0, 0,   
+	1, 1,   0, 1,   0, 0,   1, 0,  
+    1, 1,   0, 0,   1, 1,   0, 1
 
 };
 
@@ -91,12 +96,20 @@ rt3d::lightStruct light0 = {
 	{ 0.0f, 0.0f, 1.0f, 1.0f }  // position
 };
 
-rt3d::materialStruct material0 = {
-	{ 0.4f, 0.2f, 0.2f, 1.0f }, // ambient
-	{ 0.8f, 0.5f, 0.5f, 1.0f }, // diffuse
-	{ 1.0f, 0.8f, 0.8f, 1.0f }, // specular
+rt3d::materialStruct material0 = { // material with transparency
+	{ 0.4f, 0.2f, 0.2f, 0.3f }, // ambient
+	{ 0.8f, 0.5f, 0.5f, 0.3f }, // diffuse
+	{ 1.0f, 0.8f, 0.8f, 0.3f }, // specular
 	2.0f  // shininess
 };
+
+rt3d::materialStruct material1 = { // material with no transparency
+	{ 0.2f, 0.2f, 0.4f, 1.0f }, // ambient
+	{ 0.5f, 0.5f, 0.8f, 1.0f }, // diffuse
+	{ 0.8f, 0.8f, 1.0f, 1.0f }, // specular
+	2.0f  // shininess
+};
+
 
 
 
@@ -105,7 +118,7 @@ SDL_Window * setupRC(SDL_GLContext &context) {
 	SDL_Window * window;
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) // Initialize video
 		rt3d::exitFatalError("Unable to initialize SDL");
-
+	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8); // 8 bit alpha buffering
 	// Request an OpenGL 3.0 context.
 	// Not able to use SDL to choose profile (yet), should default to core profile on 3.2 or later
 	// If you request a context not supported by your drivers, no OpenGL context will be created
@@ -158,6 +171,9 @@ void init(void) {
 
 	meshObjects[5] = rt3d::createMesh(cubeVertCount, cubeVerts, nullptr, cubeNorms, cubeTexCoords, cubeIndexCount, cubeIndices);
 	glEnable(GL_DEPTH_TEST); // enable depth testing
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 }
 
 void draw(SDL_Window * window) {
@@ -170,7 +186,8 @@ void draw(SDL_Window * window) {
 	glm::mat4 projection(1.0);
 	projection = glm::perspective(float(60.0f*DEG_TO_RADIAN), 800.0f / 600.0f, 1.0f, 50.0f);
 	rt3d::setUniformMatrix4fv(mvpShaderProgram, "projection", glm::value_ptr(projection));
-
+	
+	rt3d::setMaterial(mvpShaderProgram, material1);
 	// render the sun
 	glm::mat4 modelview(1.0);
 	glBindTexture(GL_TEXTURE_2D, textures[0]); // fabric texture
@@ -181,33 +198,7 @@ void draw(SDL_Window * window) {
 	rt3d::drawIndexedMesh(meshObjects[0], cubeIndexCount, GL_TRIANGLES);
 	mvStack.pop();
 
-	// render the sun 2
-	glBindTexture(GL_TEXTURE_2D, textures[1]); // fabric texture
-	mvStack.push(modelview); // push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(0.0f, -1.5f, -4.0f));
-	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
-	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
-	rt3d::drawIndexedMesh(meshObjects[1], cubeIndexCount, GL_TRIANGLES);
-	mvStack.pop();
-
-	// render the sun 3
-	glBindTexture(GL_TEXTURE_2D, textures[2]); // fabric texture
-	mvStack.push(modelview); // push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(1.5f, -1.5f, -4.0f));
-	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
-	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
-	rt3d::drawIndexedMesh(meshObjects[2], cubeIndexCount, GL_TRIANGLES);
-	mvStack.pop();
-
-	// render the sun 4
-	glBindTexture(GL_TEXTURE_2D, textures[3]); // fabric texture
-	mvStack.push(modelview); // push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(1.5f, 0.0f, -4.0f));
-	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
-	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
-	rt3d::drawIndexedMesh(meshObjects[3], cubeIndexCount, GL_TRIANGLES);
-	mvStack.pop();
-
+	rt3d::setMaterial(mvpShaderProgram, material1);
 	// render the sun 5
 	glBindTexture(GL_TEXTURE_2D, textures[4]); // fabric texture
 	mvStack.push(modelview); // push modelview to stack
@@ -217,7 +208,44 @@ void draw(SDL_Window * window) {
 	rt3d::drawIndexedMesh(meshObjects[4], cubeIndexCount, GL_TRIANGLES);
 	mvStack.pop();
 
+	rt3d::setMaterial(mvpShaderProgram, material1);
+	// render the sun 4
+	glBindTexture(GL_TEXTURE_2D, textures[2]); // fabric texture
+	mvStack.push(modelview); // push modelview to stack
+	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(1.5f, 0.0f, -4.0f));
+	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
+	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
+	rt3d::drawIndexedMesh(meshObjects[2], cubeIndexCount, GL_TRIANGLES);
+	mvStack.pop();
+
+
+//--------------------
+
+	rt3d::setMaterial(mvpShaderProgram, material0);
+	// render the sun 3
+	glDepthMask(GL_FALSE);
+	glBindTexture(GL_TEXTURE_2D, textures[3]); // fabric texture
+	mvStack.push(modelview); // push modelview to stack
+	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(1.5f, -1.5f, -4.0f));
+	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
+	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
+	rt3d::drawIndexedMesh(meshObjects[3], cubeIndexCount, GL_TRIANGLES);
+	mvStack.pop();
+
+	rt3d::setMaterial(mvpShaderProgram, material0);
+	// render the sun 2
+	glDepthMask(GL_FALSE);
+	glBindTexture(GL_TEXTURE_2D, textures[1]); // fabric texture
+	mvStack.push(modelview); // push modelview to stack
+	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(0.0f, -1.5f, -4.0f));
+	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
+	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
+	rt3d::drawIndexedMesh(meshObjects[1], cubeIndexCount, GL_TRIANGLES);
+	mvStack.pop();
+
+	rt3d::setMaterial(mvpShaderProgram, material0);
 	// render the sun 5
+	glDepthMask(GL_FALSE);
 	glBindTexture(GL_TEXTURE_2D, textures[5]); // fabric texture
 	mvStack.push(modelview); // push modelview to stack
 	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(-1.5f, -1.5f, -4.0f));
@@ -234,6 +262,7 @@ void draw(SDL_Window * window) {
 	// then for each additional planet – push stack, add transforms, draw planet,
 	// draw moons, pop stack
 
+	glDepthMask(GL_TRUE);
 
 	SDL_GL_SwapWindow(window); // swap buffers
 }
