@@ -19,16 +19,33 @@
 using namespace rt3d;
 using namespace std;
 
+
+
 // Data would normally be read from files
-GLuint cubeVertCount = 8;
-GLfloat cubeVerts[] = { -0.5, -0.5f, -0.5f,
--0.5, 0.5f, -0.5f,
-0.5, 0.5f, -0.5f,
-0.5, -0.5f, -0.5f,
--0.5, -0.5f, 0.5f,
--0.5, 0.5f, 0.5f,
-0.5, 0.5f, 0.5f,
-0.5, -0.5f, 0.5f };
+GLuint cubeVertCount = 36;
+GLfloat cubeVerts[] = { 
+	0, 0, 0,        1, 1, 0,        1, 0, 0,        0, 0, 0,        0, 1, 0,
+	1, 1, 0,        0, 0, 0,        0, 1, 1,        0, 1, 0,        0, 0, 0,
+	0, 0, 1,        0, 1, 1,        0, 1, 0,        1, 1, 1,        1, 1, 0,
+	0, 1, 0,        0, 1, 1,        1, 1, 1,        1, 0, 0,        1, 1, 0,
+	1, 1, 1,        1, 0, 0,        1, 1, 1,        1, 0, 1,        0, 0, 0,
+	1, 0, 0,        1, 0, 1,        0, 0, 0,        1, 0, 1,        0, 0, 1,
+	0, 0, 1,        1, 0, 1,        1, 1, 1,        0, 0, 1,        1, 1, 1,
+	0, 1, 1
+};
+
+GLfloat cubeNorms[] = {
+	0, 0, -1,       0, 0, -1,       0, 0, -1,       0, 0, -1,       0, 0, -1,
+	0, 0, -1,       -1, 0, 0,       -1, 0, 0,       -1, 0, 0,       -1, 0, 0,
+	-1, 0, 0,       -1, 0, 0,       0, 1, 0,        0, 1, 0,        0, 1, 0,
+	0, 1, 0,        0, 1, 0,        0, 1, 0,        1, 0, 0,        1, 0, 0,
+	1, 0, 0,        1, 0, 0,        1, 0, 0,        1, 0, 0,        0, -1, 0,
+	0, -1, 0,       0, -1, 0,       0, -1, 0,       0, -1, 0,       0, -1, 0,
+	0, 0, 1,        0, 0, 1,        0, 0, 1,        0, 0, 1,        0, 0, 1,
+	0, 0, 1
+
+};
+
 GLfloat cubeColours[] = { 0.0f, 0.0f, 0.0f,
 0.0f, 1.0f, 0.0f,
 1.0f, 1.0f, 0.0f,
@@ -39,22 +56,33 @@ GLfloat cubeColours[] = { 0.0f, 0.0f, 0.0f,
 1.0f, 0.0f, 1.0f };
 
 GLuint cubeIndexCount = 36;
-GLuint cubeIndices[] = { 0,1,2, 0,2,3, // back  
-1,0,5, 0,4,5, // left					
-6,3,2, 3,6,7, // right
-1,5,6, 1,6,2, // top
-0,3,4, 3,7,4, // bottom
-6,5,4, 7,6,4 }; // front
+GLuint cubeIndices[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
+, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35
+}; 
+
+GLfloat cubeTexCoords[] = { 
+	0, 0,   1, 1,   1, 0,   0, 0,   0, 1,   1, 1,   0, 0,   1, 1,   1, 0,   0, 0,
+	0, 1,   1, 1,   0, 0,   1, 1,   1, 0,   0, 0,   0, 1,   1, 1,   0, 0,   0, 1,
+	1, 1,   0, 0,   1, 1,   1, 0,   0, 0,   1, 0,   1, 1,   0, 0,   1, 1,   0, 1,
+	0, 0,   1, 0,   1, 1,   0, 0,   1, 1,   0, 1
+
+};
+
 
 GLfloat dx = 0.0f;
 GLfloat dy = 0.0f;
 GLfloat sx = 1.0f;
 GLfloat sy = 1.0f;
 GLfloat r = 0.0f;
-GLuint meshObjects[2];
+GLuint meshObjects[6];
 GLuint mvpShaderProgram;
 glm::mat4 MVP;
 std::stack<glm::mat4> mvStack;
+
+// Texture and lighting
+GLuint textures[6];
+
+GLuint loadBitmap(char *fname);
 
 rt3d::lightStruct light0 = {
 	{ 0.2f, 0.2f, 0.2f, 1.0f }, // ambient
@@ -103,14 +131,32 @@ SDL_Window * setupRC(SDL_GLContext &context) {
 
 void init(void) {
 	// For this simple example we'll be using the most basic of shader programs
-	mvpShaderProgram = rt3d::initShaders("phong.vert", "phong.frag");
+	mvpShaderProgram = rt3d::initShaders("phong-tex.vert", "phong-tex.frag");
+
+	textures[0] = loadBitmap("fabric.bmp");
+	textures[1] = loadBitmap("studdedmetal.bmp");
+	textures[2] = loadBitmap("chocobo.bmp");
+	textures[3] = loadBitmap("fatchocobo.bmp");
+	textures[4] = loadBitmap("chocobo2.bmp");
+	textures[5] = loadBitmap("randompic.bmp");
+	
 
 	rt3d::setLight(mvpShaderProgram, light0);
 	rt3d::setMaterial(mvpShaderProgram, material0);
 
 	//MVP = glm::mat4(1.0); //init to identify matrix
 	// Going to create our mesh objects here
-	meshObjects[0] = rt3d::createMesh(cubeVertCount, cubeVerts, nullptr, cubeVerts, nullptr, cubeIndexCount, cubeIndices);
+	meshObjects[0] = rt3d::createMesh(cubeVertCount, cubeVerts, nullptr, cubeNorms, cubeTexCoords, cubeIndexCount, cubeIndices);
+	
+	meshObjects[1] = rt3d::createMesh(cubeVertCount, cubeVerts, nullptr, cubeNorms, cubeTexCoords, cubeIndexCount, cubeIndices);
+
+	meshObjects[2] = rt3d::createMesh(cubeVertCount, cubeVerts, nullptr, cubeNorms, cubeTexCoords, cubeIndexCount, cubeIndices);
+
+	meshObjects[3] = rt3d::createMesh(cubeVertCount, cubeVerts, nullptr, cubeNorms, cubeTexCoords, cubeIndexCount, cubeIndices);
+
+	meshObjects[4] = rt3d::createMesh(cubeVertCount, cubeVerts, nullptr, cubeNorms, cubeTexCoords, cubeIndexCount, cubeIndices);
+
+	meshObjects[5] = rt3d::createMesh(cubeVertCount, cubeVerts, nullptr, cubeNorms, cubeTexCoords, cubeIndexCount, cubeIndices);
 	glEnable(GL_DEPTH_TEST); // enable depth testing
 }
 
@@ -127,21 +173,61 @@ void draw(SDL_Window * window) {
 
 	// render the sun
 	glm::mat4 modelview(1.0);
+	glBindTexture(GL_TEXTURE_2D, textures[0]); // fabric texture
 	mvStack.push(modelview); // push modelview to stack
 	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(0.0f, 0.0f, -4.0f));
 	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
 	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
 	rt3d::drawIndexedMesh(meshObjects[0], cubeIndexCount, GL_TRIANGLES);
+	mvStack.pop();
 
-	// planet
-	mvStack.push(mvStack.top());// push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(2.0f, 0.0f, 0.0f));
+	// render the sun 2
+	glBindTexture(GL_TEXTURE_2D, textures[1]); // fabric texture
+	mvStack.push(modelview); // push modelview to stack
+	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(0.0f, -1.5f, -4.0f));
 	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
-	mvStack.top() = glm::scale(mvStack.top(), glm::vec3(0.3f, 0.3f, 0.3f));
 	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
-	rt3d::drawIndexedMesh(meshObjects[0], cubeIndexCount, GL_TRIANGLES);
+	rt3d::drawIndexedMesh(meshObjects[1], cubeIndexCount, GL_TRIANGLES);
+	mvStack.pop();
 
-	
+	// render the sun 3
+	glBindTexture(GL_TEXTURE_2D, textures[2]); // fabric texture
+	mvStack.push(modelview); // push modelview to stack
+	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(1.5f, -1.5f, -4.0f));
+	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
+	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
+	rt3d::drawIndexedMesh(meshObjects[2], cubeIndexCount, GL_TRIANGLES);
+	mvStack.pop();
+
+	// render the sun 4
+	glBindTexture(GL_TEXTURE_2D, textures[3]); // fabric texture
+	mvStack.push(modelview); // push modelview to stack
+	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(1.5f, 0.0f, -4.0f));
+	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
+	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
+	rt3d::drawIndexedMesh(meshObjects[3], cubeIndexCount, GL_TRIANGLES);
+	mvStack.pop();
+
+	// render the sun 5
+	glBindTexture(GL_TEXTURE_2D, textures[4]); // fabric texture
+	mvStack.push(modelview); // push modelview to stack
+	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(-1.5f, 0.0f, -4.0f));
+	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
+	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
+	rt3d::drawIndexedMesh(meshObjects[4], cubeIndexCount, GL_TRIANGLES);
+	mvStack.pop();
+
+	// render the sun 5
+	glBindTexture(GL_TEXTURE_2D, textures[5]); // fabric texture
+	mvStack.push(modelview); // push modelview to stack
+	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(-1.5f, -1.5f, -4.0f));
+	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
+	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
+	rt3d::drawIndexedMesh(meshObjects[5], cubeIndexCount, GL_TRIANGLES);
+	mvStack.pop();
+
+
+
 	// Now to push another stack, add transformations and draw moon #1
 	// then pop stack. 
 	// Repeat until all moons rendered, then pop stack...
@@ -177,6 +263,44 @@ void update(void) {
 
 }
 
+// A simple texture loading function
+// lots of room for improvement - and better error checking!
+GLuint loadBitmap(char *fname)
+{
+	GLuint texID;
+	glGenTextures(1, &texID); // generate texture ID
+							  // load file - using core SDL library
+	SDL_Surface *tmpSurface;
+	tmpSurface = SDL_LoadBMP(fname);
+	if (!tmpSurface)
+	{
+		std::cout << "Error loading bitmap" << std::endl;
+	}
+	std::cout << "Success loading bitmap" << std::endl;
+	// bind texture and set parameters
+	glBindTexture(GL_TEXTURE_2D, texID);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	SDL_PixelFormat *format = tmpSurface->format;
+	GLuint externalFormat, internalFormat;
+	if (format->Amask) {
+		internalFormat = GL_RGBA;
+		externalFormat = (format->Rmask < format->Bmask) ? GL_RGBA : GL_BGRA;
+	}
+	else {
+		internalFormat = GL_RGB;
+		externalFormat = (format->Rmask < format->Bmask) ? GL_RGB : GL_BGR;
+	}
+
+	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, tmpSurface->w, tmpSurface->h, 0,
+		externalFormat, GL_UNSIGNED_BYTE, tmpSurface->pixels);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	SDL_FreeSurface(tmpSurface); // texture loaded, free the temporary buffer
+	return texID;	// return value of texture ID
+}
 
 
 
