@@ -16,6 +16,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #define DEG_TO_RADIAN 0.017453293
+
 using namespace rt3d;
 using namespace std;
 
@@ -73,9 +74,11 @@ GLfloat cubeTexCoords[] = {
 
 };
 
+glm::vec4 playerPosi();
 
 GLfloat dx = 0.0f;
-GLfloat dy = 0.0f;
+GLfloat dy = -1.0f;
+GLfloat dz = -4.0;
 GLfloat sx = 1.0f;
 GLfloat sy = 1.0f;
 GLfloat r = 0.0f;
@@ -83,6 +86,14 @@ GLuint meshObjects[6];
 GLuint mvpShaderProgram;
 glm::mat4 MVP;
 std::stack<glm::mat4> mvStack;
+
+glm::vec3 eye(0.0f, 1.0f, 4.0f);
+glm::vec3 at(0.0f, 1.0f, 3.0f);
+glm::vec3 up(0.0f, 1.0f, 0.0f);
+
+glm::vec3 playerEye(1.0f, 0.0f, 4.0f);
+
+glm::vec4 lightPos(0.0f, 0.0f, 1.0f, 1.0f);
 
 // Texture and lighting
 GLuint textures[6];
@@ -142,6 +153,16 @@ SDL_Window * setupRC(SDL_GLContext &context) {
 	return window;
 }
 
+glm::vec3 moveForward(glm::vec3 cam, GLfloat angle, GLfloat d) {
+	return glm::vec3(cam.x + d*std::sin(angle*DEG_TO_RADIAN), cam.y, cam.z - d*std::cos(angle*DEG_TO_RADIAN));
+}
+
+glm::vec3 moveRight(glm::vec3 pos, GLfloat angle, GLfloat d) {
+	return glm::vec3(pos.x + d*std::cos(angle*DEG_TO_RADIAN),
+		pos.y, pos.z + d*std::sin(angle*DEG_TO_RADIAN));
+}
+
+
 void init(void) {
 	// For this simple example we'll be using the most basic of shader programs
 	mvpShaderProgram = rt3d::initShaders("phong-tex.vert", "phong-tex.frag");
@@ -171,8 +192,8 @@ void init(void) {
 
 	meshObjects[5] = rt3d::createMesh(cubeVertCount, cubeVerts, nullptr, cubeNorms, cubeTexCoords, cubeIndexCount, cubeIndices);
 	glEnable(GL_DEPTH_TEST); // enable depth testing
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 }
 
@@ -187,17 +208,58 @@ void draw(SDL_Window * window) {
 	projection = glm::perspective(float(60.0f*DEG_TO_RADIAN), 800.0f / 600.0f, 1.0f, 50.0f);
 	rt3d::setUniformMatrix4fv(mvpShaderProgram, "projection", glm::value_ptr(projection));
 	
+	// set base position for scene
+	glm::mat4 modelview(1.0);
+	mvStack.push(modelview);
+	at = moveForward(eye, r, 1.0f);
+	mvStack.top() = glm::lookAt( eye, at, up);
+
+	glm::vec4 tmp = mvStack.top()*lightPos;
+	rt3d::setLightPos(mvpShaderProgram, glm::value_ptr(tmp));
+
+	// draw a cube for ground plane
+	glBindTexture(GL_TEXTURE_2D, textures[0]);
+	mvStack.push(mvStack.top());
+	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(-10.0f, -0.1f, -10.0f));
+	mvStack.top() = glm::scale(mvStack.top(), glm::vec3(20.0f, 0.1f, 20.0f));
+	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
+	rt3d::setMaterial(mvpShaderProgram, material1);
+	rt3d::drawIndexedMesh(meshObjects[0], cubeIndexCount, GL_TRIANGLES);
+	mvStack.pop();
+
+	// Cubes for buildings Different texture & individual material properties & positions
+	glBindTexture(GL_TEXTURE_2D, textures[1]);
+	rt3d::materialStruct tmpMaterial = material0;
+	for (int a = 0; a<4; a++) {
+		for (int b = 0; b<4; b++) {
+			tmpMaterial.ambient[0] = a * 0.33f;
+			tmpMaterial.ambient[1] = b * 0.33f;
+			tmpMaterial.diffuse[0] = a * 0.33f;
+			tmpMaterial.diffuse[1] = b * 0.33f;
+			tmpMaterial.specular[0] = a * 0.33f;
+			tmpMaterial.specular[1] = b * 0.33f;
+			rt3d::setMaterial(mvpShaderProgram, tmpMaterial);
+			mvStack.push(mvStack.top());
+			mvStack.top() = glm::translate(mvStack.top(), glm::vec3(a*3.0f, 0.0f, b*3.0f));
+			mvStack.top() = glm::scale(mvStack.top(), glm::vec3(1.0f, 1.0f*(a + 0.1f), 1));
+			rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
+			rt3d::drawIndexedMesh(meshObjects[0], cubeIndexCount, GL_TRIANGLES);
+			mvStack.pop();
+		}
+	}
+
+
 	rt3d::setMaterial(mvpShaderProgram, material1);
 	// render the sun
-	glm::mat4 modelview(1.0);
 	glBindTexture(GL_TEXTURE_2D, textures[0]); // fabric texture
 	mvStack.push(modelview); // push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(0.0f, 0.0f, -4.0f));
-	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
+	mvStack.top() = glm::translate(mvStack.top(), moveForward(eye , r, 1.0f));
+	mvStack.top() = glm::rotate(mvStack.top(), r, moveRight(eye, r, 1.0f));
 	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
 	rt3d::drawIndexedMesh(meshObjects[0], cubeIndexCount, GL_TRIANGLES);
 	mvStack.pop();
 
+	/*
 	rt3d::setMaterial(mvpShaderProgram, material1);
 	// render the sun 5
 	glBindTexture(GL_TEXTURE_2D, textures[4]); // fabric texture
@@ -219,7 +281,7 @@ void draw(SDL_Window * window) {
 	mvStack.pop();
 
 
-//--------------------
+//-------------------- Transparent Below
 
 	rt3d::setMaterial(mvpShaderProgram, material0);
 	// render the sun 3
@@ -234,7 +296,6 @@ void draw(SDL_Window * window) {
 
 	rt3d::setMaterial(mvpShaderProgram, material0);
 	// render the sun 2
-	glDepthMask(GL_FALSE);
 	glBindTexture(GL_TEXTURE_2D, textures[1]); // fabric texture
 	mvStack.push(modelview); // push modelview to stack
 	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(0.0f, -1.5f, -4.0f));
@@ -245,7 +306,6 @@ void draw(SDL_Window * window) {
 
 	rt3d::setMaterial(mvpShaderProgram, material0);
 	// render the sun 5
-	glDepthMask(GL_FALSE);
 	glBindTexture(GL_TEXTURE_2D, textures[5]); // fabric texture
 	mvStack.push(modelview); // push modelview to stack
 	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(-1.5f, -1.5f, -4.0f));
@@ -253,7 +313,7 @@ void draw(SDL_Window * window) {
 	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
 	rt3d::drawIndexedMesh(meshObjects[5], cubeIndexCount, GL_TRIANGLES);
 	mvStack.pop();
-
+	*/
 
 
 	// Now to push another stack, add transformations and draw moon #1
@@ -269,28 +329,31 @@ void draw(SDL_Window * window) {
 
 void update(void) {
 	const Uint8 *keys = SDL_GetKeyboardState(NULL);
-	if (keys[SDL_SCANCODE_W]) dy += 0.1;
-	if (keys[SDL_SCANCODE_S]) dy -= 0.1;
-	if (keys[SDL_SCANCODE_D]) dx += 0.1;
-	if (keys[SDL_SCANCODE_A]) dx -= 0.1;
+	if (keys[SDL_SCANCODE_W]) eye = moveForward(eye, r, 0.1f);
+	if (keys[SDL_SCANCODE_S]) eye = moveForward(eye, r, -0.1f);
+	if (keys[SDL_SCANCODE_A]) eye = moveRight(eye, r, -0.1f);
+	if (keys[SDL_SCANCODE_D]) eye = moveRight(eye, r, 0.1f);
+	if (keys[SDL_SCANCODE_R]) eye.y += 0.1;
+	if (keys[SDL_SCANCODE_F]) eye.y -= 0.1;
+	if (keys[SDL_SCANCODE_COMMA]) r -= 1.0f;
+	if (keys[SDL_SCANCODE_PERIOD]) r += 1.0f;
 
-	if (keys[SDL_SCANCODE_UP]) sy += 0.1;
-	if (keys[SDL_SCANCODE_DOWN]) sy -= 0.1;
-	if (keys[SDL_SCANCODE_LEFT]) sx += 0.1;
-	if (keys[SDL_SCANCODE_RIGHT]) sx -= 0.1;
+	if (keys[SDL_SCANCODE_Q]) r += 0.5;
+	if (keys[SDL_SCANCODE_E]) r -= 0.5;
 
-	if (keys[SDL_SCANCODE_R]) {
+	if (keys[SDL_SCANCODE_P]) {
 		dx = 0.0;
 		dy = 0.0;
 		sx = 1.0;
 		sy = 1.0;
 		r = 0.0;
 	}
-
-	if (keys[SDL_SCANCODE_Q]) r += 0.3;
-	if (keys[SDL_SCANCODE_E]) r -= 0.3;
+	
 
 }
+
+
+
 
 // A simple texture loading function
 // lots of room for improvement - and better error checking!
