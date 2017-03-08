@@ -87,11 +87,14 @@ GLuint mvpShaderProgram;
 glm::mat4 MVP;
 std::stack<glm::mat4> mvStack;
 
-glm::vec3 eye(0.0f, 1.0f, 4.0f);
-glm::vec3 at(0.0f, 1.0f, 3.0f);
-glm::vec3 up(0.0f, 1.0f, 0.0f);
+glm::vec3 eye(0.0f, 3.0f, 4.0f); //Current Camera Position
+glm::vec3 playerEye(0.0f, 3.0f, 5.0f); //Player Camera Position
+glm::vec3 at(0.0f, 1.0f, 3.0f); // A point the camera is aiming towards
+glm::vec3 playerAt(0.0f, 1.0f, 3.0f); // Player point the camera is aiming towards
+glm::vec3 up(0.0f, 1.0f, 0.0f); // Vector to indicate which way up the camera is oriented
+glm::vec3 playerUp(0.0f, 1.0f, 0.0f); //Player Vector to indicate which way up the camera is oriented
 
-glm::vec3 playerEye(1.0f, 0.0f, 4.0f);
+
 
 glm::vec4 lightPos(0.0f, 0.0f, 1.0f, 1.0f);
 
@@ -197,6 +200,8 @@ void init(void) {
 
 }
 
+
+
 void draw(SDL_Window * window) {
 	// clear the screen
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
@@ -248,79 +253,18 @@ void draw(SDL_Window * window) {
 		}
 	}
 
+	at = moveForward(playerEye, r, 1.0f);
+	mvStack.top() = glm::lookAt(glm::vec3(playerEye.x, playerEye.y + 5.0f, playerEye.z + 5.0f), at, up);
 
 	rt3d::setMaterial(mvpShaderProgram, material1);
-	// render the sun
-	glBindTexture(GL_TEXTURE_2D, textures[0]); // fabric texture
-	mvStack.push(modelview); // push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), moveForward(eye , r, 1.0f));
-	mvStack.top() = glm::rotate(mvStack.top(), r, moveRight(eye, r, 1.0f));
+	// render the "player"
+	glBindTexture(GL_TEXTURE_2D, textures[0]); 
+	mvStack.push(mvStack.top()); //modelview push modelview to stack
+	mvStack.top() = glm::translate(mvStack.top(), moveForward(playerEye, r, 1.0f));
+	mvStack.top() = glm::rotate(mvStack.top(), r, moveRight(playerEye, r, 1.0f));
 	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
 	rt3d::drawIndexedMesh(meshObjects[0], cubeIndexCount, GL_TRIANGLES);
 	mvStack.pop();
-
-	/*
-	rt3d::setMaterial(mvpShaderProgram, material1);
-	// render the sun 5
-	glBindTexture(GL_TEXTURE_2D, textures[4]); // fabric texture
-	mvStack.push(modelview); // push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(-1.5f, 0.0f, -4.0f));
-	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
-	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
-	rt3d::drawIndexedMesh(meshObjects[4], cubeIndexCount, GL_TRIANGLES);
-	mvStack.pop();
-
-	rt3d::setMaterial(mvpShaderProgram, material1);
-	// render the sun 4
-	glBindTexture(GL_TEXTURE_2D, textures[2]); // fabric texture
-	mvStack.push(modelview); // push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(1.5f, 0.0f, -4.0f));
-	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
-	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
-	rt3d::drawIndexedMesh(meshObjects[2], cubeIndexCount, GL_TRIANGLES);
-	mvStack.pop();
-
-
-//-------------------- Transparent Below
-
-	rt3d::setMaterial(mvpShaderProgram, material0);
-	// render the sun 3
-	glDepthMask(GL_FALSE);
-	glBindTexture(GL_TEXTURE_2D, textures[3]); // fabric texture
-	mvStack.push(modelview); // push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(1.5f, -1.5f, -4.0f));
-	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
-	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
-	rt3d::drawIndexedMesh(meshObjects[3], cubeIndexCount, GL_TRIANGLES);
-	mvStack.pop();
-
-	rt3d::setMaterial(mvpShaderProgram, material0);
-	// render the sun 2
-	glBindTexture(GL_TEXTURE_2D, textures[1]); // fabric texture
-	mvStack.push(modelview); // push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(0.0f, -1.5f, -4.0f));
-	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
-	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
-	rt3d::drawIndexedMesh(meshObjects[1], cubeIndexCount, GL_TRIANGLES);
-	mvStack.pop();
-
-	rt3d::setMaterial(mvpShaderProgram, material0);
-	// render the sun 5
-	glBindTexture(GL_TEXTURE_2D, textures[5]); // fabric texture
-	mvStack.push(modelview); // push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), glm::vec3(-1.5f, -1.5f, -4.0f));
-	mvStack.top() = glm::rotate(mvStack.top(), r, glm::vec3(0.0f, 1.0f, 0.0f));
-	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
-	rt3d::drawIndexedMesh(meshObjects[5], cubeIndexCount, GL_TRIANGLES);
-	mvStack.pop();
-	*/
-
-
-	// Now to push another stack, add transformations and draw moon #1
-	// then pop stack. 
-	// Repeat until all moons rendered, then pop stack...
-	// then for each additional planet – push stack, add transforms, draw planet,
-	// draw moons, pop stack
 
 	glDepthMask(GL_TRUE);
 
@@ -329,12 +273,12 @@ void draw(SDL_Window * window) {
 
 void update(void) {
 	const Uint8 *keys = SDL_GetKeyboardState(NULL);
-	if (keys[SDL_SCANCODE_W]) eye = moveForward(eye, r, 0.1f);
-	if (keys[SDL_SCANCODE_S]) eye = moveForward(eye, r, -0.1f);
-	if (keys[SDL_SCANCODE_A]) eye = moveRight(eye, r, -0.1f);
-	if (keys[SDL_SCANCODE_D]) eye = moveRight(eye, r, 0.1f);
-	if (keys[SDL_SCANCODE_R]) eye.y += 0.1;
-	if (keys[SDL_SCANCODE_F]) eye.y -= 0.1;
+	if (keys[SDL_SCANCODE_W]) playerEye = moveForward(playerEye, r, 0.1f);
+	if (keys[SDL_SCANCODE_S]) playerEye = moveForward(playerEye, r, -0.1f);
+	if (keys[SDL_SCANCODE_A]) playerEye = moveRight(playerEye, r, -0.1f);
+	if (keys[SDL_SCANCODE_D]) playerEye = moveRight(playerEye, r, 0.1f);
+	if (keys[SDL_SCANCODE_R]) playerEye.y += 0.1;
+	if (keys[SDL_SCANCODE_F]) playerEye.y -= 0.1;
 	if (keys[SDL_SCANCODE_COMMA]) r -= 1.0f;
 	if (keys[SDL_SCANCODE_PERIOD]) r += 1.0f;
 
@@ -349,7 +293,12 @@ void update(void) {
 		r = 0.0;
 	}
 	
-
+	eye.x = playerEye.x + 0.0f;
+	cout << "playerEye.x: " << eye.x << endl;
+	eye.y = playerEye.y + 3.0f;
+	cout << "playerEye.y: " << eye.y << endl;
+	eye.z = playerEye.z + 10.0f;
+	cout << "playerEye.z: " << eye.z << endl;
 }
 
 
