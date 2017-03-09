@@ -217,7 +217,7 @@ void draw(SDL_Window * window) {
 	glm::mat4 modelview(1.0);
 	mvStack.push(modelview);
 	at = moveForward(eye, r, 1.0f);
-	mvStack.top() = glm::lookAt( eye, at, up);
+	mvStack.top() = glm::lookAt(eye, playerEye, up);
 
 	glm::vec4 tmp = mvStack.top()*lightPos;
 	rt3d::setLightPos(mvpShaderProgram, glm::value_ptr(tmp));
@@ -253,15 +253,22 @@ void draw(SDL_Window * window) {
 		}
 	}
 
-	at = moveForward(playerEye, r, 1.0f);
-	mvStack.top() = glm::lookAt(glm::vec3(playerEye.x, playerEye.y + 5.0f, playerEye.z + 5.0f), at, up);
+	//Player
+
+	//at = moveForward(playerEye, r, 1.0f); 
 
 	rt3d::setMaterial(mvpShaderProgram, material1);
+
 	// render the "player"
 	glBindTexture(GL_TEXTURE_2D, textures[0]); 
 	mvStack.push(mvStack.top()); //modelview push modelview to stack
-	mvStack.top() = glm::translate(mvStack.top(), moveForward(playerEye, r, 1.0f));
-	mvStack.top() = glm::rotate(mvStack.top(), r, moveRight(playerEye, r, 1.0f));
+	
+	mvStack.top() = glm::translate(mvStack.top(), playerEye);
+	mvStack.top() = glm::rotate(mvStack.top(), float(r*DEG_TO_RADIAN), glm::vec3(glm::vec3(0.0f, 1.0f, 0.0f)));
+
+	//glm::vec3 playerRotationAxis( ??, ??, ??);
+	//glm::rotate(angle_in_degrees, myRotationAxis );
+	
 	rt3d::setUniformMatrix4fv(mvpShaderProgram, "modelview", glm::value_ptr(mvStack.top()));
 	rt3d::drawIndexedMesh(meshObjects[0], cubeIndexCount, GL_TRIANGLES);
 	mvStack.pop();
@@ -279,11 +286,11 @@ void update(void) {
 	if (keys[SDL_SCANCODE_D]) playerEye = moveRight(playerEye, r, 0.1f);
 	if (keys[SDL_SCANCODE_R]) playerEye.y += 0.1;
 	if (keys[SDL_SCANCODE_F]) playerEye.y -= 0.1;
-	if (keys[SDL_SCANCODE_COMMA]) r -= 1.0f;
-	if (keys[SDL_SCANCODE_PERIOD]) r += 1.0f;
+	if (keys[SDL_SCANCODE_COMMA]) playerUp.y -= 1.0f;
+	if (keys[SDL_SCANCODE_PERIOD]) playerUp.y += 1.0f;
 
-	if (keys[SDL_SCANCODE_Q]) r += 0.5;
-	if (keys[SDL_SCANCODE_E]) r -= 0.5;
+	if (keys[SDL_SCANCODE_E]) r += 0.5;
+	if (keys[SDL_SCANCODE_Q]) r -= 0.5;
 
 	if (keys[SDL_SCANCODE_P]) {
 		dx = 0.0;
