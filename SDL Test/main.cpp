@@ -161,10 +161,8 @@ glm::vec3 moveForward(glm::vec3 cam, GLfloat angle, GLfloat d) {
 }
 
 glm::vec3 moveRight(glm::vec3 pos, GLfloat angle, GLfloat d) {
-	return glm::vec3(pos.x + d*std::cos(angle*DEG_TO_RADIAN),
-		pos.y, pos.z + d*std::sin(angle*DEG_TO_RADIAN));
+	return glm::vec3(pos.x + d*std::cos(angle*DEG_TO_RADIAN), pos.y, pos.z + d*std::sin(angle*DEG_TO_RADIAN));
 }
-
 
 void init(void) {
 	// For this simple example we'll be using the most basic of shader programs
@@ -216,7 +214,7 @@ void draw(SDL_Window * window) {
 	// set base position for scene
 	glm::mat4 modelview(1.0);
 	mvStack.push(modelview);
-	at = moveForward(eye, r, 1.0f);
+	at = moveForward(playerEye, r, 1.0f);
 	mvStack.top() = glm::lookAt(eye, playerEye, up);
 
 	glm::vec4 tmp = mvStack.top()*lightPos;
@@ -280,17 +278,19 @@ void draw(SDL_Window * window) {
 
 void update(void) {
 	const Uint8 *keys = SDL_GetKeyboardState(NULL);
-	if (keys[SDL_SCANCODE_W]) playerEye = moveForward(playerEye, r, 0.1f);
-	if (keys[SDL_SCANCODE_S]) playerEye = moveForward(playerEye, r, -0.1f);
-	if (keys[SDL_SCANCODE_A]) playerEye = moveRight(playerEye, r, -0.1f);
-	if (keys[SDL_SCANCODE_D]) playerEye = moveRight(playerEye, r, 0.1f);
-	if (keys[SDL_SCANCODE_R]) playerEye.y += 0.1;
-	if (keys[SDL_SCANCODE_F]) playerEye.y -= 0.1;
-	if (keys[SDL_SCANCODE_COMMA]) playerUp.y -= 1.0f;
-	if (keys[SDL_SCANCODE_PERIOD]) playerUp.y += 1.0f;
+	if (keys[SDL_SCANCODE_W]) playerEye = moveForward(playerEye, r, -0.1f);
+	if (keys[SDL_SCANCODE_S]) playerEye = moveForward(playerEye, r, 0.1f);
+	if (keys[SDL_SCANCODE_A]) playerEye = moveRight(playerEye, r, 0.1f);
+	if (keys[SDL_SCANCODE_D]) playerEye = moveRight(playerEye, r, -0.1f);
+	if (keys[SDL_SCANCODE_R]) playerEye.y += 0.1f;
+	if (keys[SDL_SCANCODE_F]) playerEye.y -= 0.1f;
+	if (keys[SDL_SCANCODE_COMMA]) r += 1.0f;
+	if (keys[SDL_SCANCODE_PERIOD]) r -= 1.0f;
 
-	if (keys[SDL_SCANCODE_E]) r += 0.5;
-	if (keys[SDL_SCANCODE_Q]) r -= 0.5;
+	//glm::lookAt(eye, playerEye, up)
+
+	//if (keys[SDL_SCANCODE_E]) r += 1.0f;
+	//if (keys[SDL_SCANCODE_Q]) r -= 1.0f;
 
 	if (keys[SDL_SCANCODE_P]) {
 		dx = 0.0;
@@ -304,8 +304,10 @@ void update(void) {
 	cout << "playerEye.x: " << eye.x << endl;
 	eye.y = playerEye.y + 3.0f;
 	cout << "playerEye.y: " << eye.y << endl;
-	eye.z = playerEye.z + 10.0f;
-	cout << "playerEye.z: " << eye.z << endl;
+	//eye.y = playerEye.z + 10.0f;
+	//cout << "playerEye.z: " << eye.y << endl;
+	eye = moveForward(playerEye, r, 10.0f);
+	cout << "playerEye.CameraDirection: " << eye.z << endl;
 }
 
 
