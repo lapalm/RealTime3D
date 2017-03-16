@@ -263,7 +263,7 @@ void draw(SDL_Window * window) {
 	
 	mvStack.top() = glm::translate(mvStack.top(), playerEye);
 	mvStack.top() = glm::rotate(mvStack.top(), float(r*DEG_TO_RADIAN), glm::vec3(glm::vec3(0.0f, 1.0f, 0.0f)));
-
+	printf(" \n Draw Rotation: %f degrees \n", r);
 	//glm::vec3 playerRotationAxis( ??, ??, ??);
 	//glm::rotate(angle_in_degrees, myRotationAxis );
 	
@@ -308,6 +308,7 @@ void update(void) {
 	//cout << "playerEye.z: " << eye.y << endl;
 	eye = moveForward(playerEye, r, 10.0f);
 	cout << "playerEye.CameraDirection: " << eye.z << endl;
+	printf("Camera Rotation: %f degrees", r);
 }
 
 
